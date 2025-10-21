@@ -1,0 +1,15 @@
+# Core UI
+PyQt5>=5.15.9
+
+# Encryption
+cryptography>=42.0.5
+
+# Optional (for Chrome password import)
+secretstorage>=3.3.3; sys_platform == "linux"
+dbus-python>=1.3.2; sys_platform == "linux"
+
+# Optional (for Linux PAM system password verification)
+python-pam>=2.0.2; sys_platform == "linux"
+
+# Optional (for Windows Chrome DPAPI decryption & system login)
+pywin32>=306; sys_platform == "win32"
