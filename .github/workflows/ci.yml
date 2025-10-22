@@ -51,15 +51,27 @@ jobs:
       - name: 🛠️ Build App with PyInstaller
         run: |
           echo "Building VaultX for ${{ matrix.os }}..."
-          pyinstaller main.py \
-            --noconfirm \
-            --onefile \
-            --name VaultX \
-            --windowed \
-            --icon icons/vault.ico \
-            --add-data "ui;ui" \
-            --add-data "utils;utils" \
-            --add-data "icons;icons"
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            pyinstaller main.py ^
+              --noconfirm ^
+              --onefile ^
+              --name VaultX ^
+              --windowed ^
+              --icon icons/vault.ico ^
+              --add-data "ui;ui" ^
+              --add-data "utils;utils" ^
+              --add-data "icons;icons"
+          else
+            pyinstaller main.py \
+              --noconfirm \
+              --onefile \
+              --name VaultX \
+              --noconsole \
+              --add-data=ui:ui \
+              --add-data=utils:utils \
+              --add-data=icons:icons
+          fi
+        shell: bash
 
       - name: 📦 Package Build Artifact
         run: |
