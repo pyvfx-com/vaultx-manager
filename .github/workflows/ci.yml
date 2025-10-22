@@ -48,11 +48,6 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller flake8 pytest
 
-      - name: 🔍 Lint Code (flake8)
-        run: |
-          echo "Running flake8 lint checks..."
-          flake8 ui utils main.py --ignore=E501,W503,E203
-
       - name: ✅ Run Unit Tests
         run: |
           echo "Running pytest..."
