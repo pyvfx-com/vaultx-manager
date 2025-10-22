@@ -1,30 +1,44 @@
-import os, json
-from .crypto import encrypt_blob, decrypt_blob, VAULT_DIR
+import os
+import json
+from utils.crypto import encrypt_blob, decrypt_blob
 
+VAULT_DIR = os.path.expanduser("~/.vaultx_data")
+VAULT_FILE = os.path.join(VAULT_DIR, "vault.enc")
 META_FILE = os.path.join(VAULT_DIR, "meta.json")
-LOCAL_VAULT_FILE = os.path.join(VAULT_DIR, "vault.enc")
+
 
 def load_meta():
+    """Load meta information."""
     if os.path.exists(META_FILE):
-        try:
-            return json.load(open(META_FILE, "r"))
-        except Exception:
-            pass
+        with open(META_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
     return {}
 
+
 def save_meta(meta):
-    json.dump(meta, open(META_FILE, "w"), indent=2)
+    """Save meta information."""
+    os.makedirs(VAULT_DIR, exist_ok=True)
+    with open(META_FILE, "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+
 
 def load_vault(password: str):
-    if not os.path.exists(LOCAL_VAULT_FILE):
+    """Decrypt and load vault contents."""
+    if not os.path.exists(VAULT_FILE):
         return {}
     try:
-        enc = open(LOCAL_VAULT_FILE, "rb").read()
-        dec = decrypt_blob(enc, password)
-        return json.loads(dec.decode())
+        with open(VAULT_FILE, "rb") as f:
+            encrypted = f.read()
+        decrypted = decrypt_blob(encrypted, password)
+        return json.loads(decrypted.decode("utf-8"))
     except Exception:
         return {}
 
+
 def save_vault(vault_data, password: str):
-    enc = encrypt_blob(json.dumps(vault_data).encode(), password)
-    open(LOCAL_VAULT_FILE, "wb").write(enc)
+    """Encrypt and save vault data."""
+    os.makedirs(VAULT_DIR, exist_ok=True)
+    data = json.dumps(vault_data).encode("utf-8")
+    encrypted = encrypt_blob(data, password)
+    with open(VAULT_FILE, "wb") as f:
+        f.write(encrypted)

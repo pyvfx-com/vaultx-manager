@@ -1,5 +1,8 @@
-import sys, os, hashlib, getpass, stat
-from pathlib import Path
+import os
+import sys
+import hashlib
+import getpass
+import stat
 
 try:
     import ctypes
@@ -12,46 +15,62 @@ try:
 except Exception:
     pam = None
 
-HOME = str(Path.home())
-VAULT_DIR = os.path.join(HOME, ".vaultx_data")
-os.makedirs(VAULT_DIR, exist_ok=True)
-STORED_HASH_FILE = os.path.join(VAULT_DIR, "sys_pass_hash.txt")
+STORED_HASH_FILE = os.path.expanduser("~/.vaultx_data/sys_pass_hash.txt")
+
 
 def verify_system_password(password: str) -> bool:
-    """Verify using OS or fallback stored hash."""
+    """Verify password using OS (Windows or Linux PAM) or local fallback."""
+    # Windows
     if sys.platform.startswith("win") and ctypes:
         try:
             advapi32 = ctypes.windll.advapi32
-            LogonUser = advapi32.LogonUserW
-            LogonUser.argtypes = [
-                wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.LPCWSTR,
-                wintypes.DWORD, wintypes.DWORD, ctypes.POINTER(wintypes.HANDLE)
+            logon_user = advapi32.LogonUserW
+            logon_user.argtypes = [
+                wintypes.LPCWSTR,
+                wintypes.LPCWSTR,
+                wintypes.LPCWSTR,
+                wintypes.DWORD,
+                wintypes.DWORD,
+                ctypes.POINTER(wintypes.HANDLE),
             ]
+            logon32_logon_network = 3
+            logon32_provider_default = 0
             token = wintypes.HANDLE()
             username = getpass.getuser()
-            res = LogonUser(username, None, password, 3, 0, ctypes.byref(token))
-            if res != 0:
+            result = logon_user(
+                username,
+                None,
+                password,
+                logon32_logon_network,
+                logon32_provider_default,
+                ctypes.byref(token),
+            )
+            if result != 0:
                 ctypes.windll.kernel32.CloseHandle(token)
                 return True
         except Exception:
             pass
 
+    # Linux PAM
     if sys.platform.startswith("linux") and pam:
         try:
-            if pam.pam().authenticate(getpass.getuser(), password):
+            p = pam.pam()
+            username = getpass.getuser()
+            if p.authenticate(username, password):
                 return True
         except Exception:
             pass
 
+    # Local fallback hash
     if os.path.exists(STORED_HASH_FILE):
         with open(STORED_HASH_FILE, "r") as f:
             stored = f.read().strip()
-        return hashlib.sha256(password.encode()).hexdigest() == stored
+        if stored:
+            return hashlib.sha256(password.encode()).hexdigest() == stored
 
+    # First run — create hash
+    os.makedirs(os.path.dirname(STORED_HASH_FILE), exist_ok=True)
     with open(STORED_HASH_FILE, "w") as f:
         f.write(hashlib.sha256(password.encode()).hexdigest())
-    try:
-        os.chmod(STORED_HASH_FILE, stat.S_IRUSR | stat.S_IWUSR)
-    except Exception:
-        pass
+    os.chmod(STORED_HASH_FILE, stat.S_IRUSR | stat.S_IWUSR)
     return True
