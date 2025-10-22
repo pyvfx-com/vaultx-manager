@@ -19,12 +19,15 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - name: 📥 Checkout Repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+          fetch-depth: 0
 
       - name: 🧩 Install Linux system dependencies
         if: runner.os == 'Linux'
-        run: |
           sudo apt-get update
           sudo apt-get install -y \
             libdbus-1-dev \
