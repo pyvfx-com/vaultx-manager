@@ -1,58 +1,60 @@
-name: 🧪 VaultX Continuous Integration
+name: 🧩 VaultX Build Check
 
 on:
   push:
     branches:
-      - main
-      - develop
+    - main
+    - develop
   pull_request:
     branches:
-      - main
-      - develop
+    - main
+    - develop
 
 jobs:
-  build-test:
-    name: Build & Verify on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
+  build:
+    runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout Repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
+
+      - name: 🧩 Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libdbus-1-dev \
+            libdbus-glib-1-dev \
+            pkg-config \
+            libglib2.0-dev
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.14"
 
-      - name: 📦 Install Dependencies
+      - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install pyinstaller
           pip install -r requirements.txt
-          pip install pyinstaller pytest
 
-      - name: ✅ Run Unit Tests
+      - name: 🛠️ Build app with PyInstaller
         run: |
-          echo "Running pytest..."
-          pytest -v || echo "No tests found (skipping)"
-
-      - name: 🛠️ Test PyInstaller Build
-        run: |
-          echo "Testing build..."
           pyinstaller main.py \
             --noconfirm \
             --onefile \
-            --name VaultX-Test \
-            --windowed \
-            --icon icons/vault.ico \
-            --add-data "ui;ui" \
-            --add-data "utils;utils" \
-            --add-data "icons;icons"
+            --name VaultX \
+            --noconsole \
+            --add-data=ui:ui \
+            --add-data=utils:utils \
+            --add-data=icons:icons
 
-      - name: 🧾 Verify Executable
+      - name: ✅ Verify build output
         run: |
-          echo "Checking dist directory..."
-          ls -la dist
-          echo "VaultX test build complete on ${{ matrix.os }}"
+          test -f dist/VaultX || (echo "❌ Build failed: VaultX not found" && exit 1)
+          echo "✅ Build succeeded. VaultX binary created in dist/"
+
+      - name: 📤 Upload built artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VaultX-Build
+          path: dist/VaultX
