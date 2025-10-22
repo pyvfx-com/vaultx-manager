@@ -12,35 +12,30 @@ on:
 
 jobs:
   build-test:
-    name: Build & Verify on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            artifact_name: vaultx-linux
-          - os: windows-latest
-            artifact_name: vaultx-windows
-          - os: macos-latest
-            artifact_name: vaultx-macos
 
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
 
+      - name: 🧩 Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libdbus-1-dev \
+            libdbus-glib-1-dev \
+            pkg-config \
+            libglib2.0-dev
+
       - name: 🐍 Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: 💾 Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
       - name: 📦 Install Dependencies
         run: |
