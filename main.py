@@ -1,17 +1,19 @@
 import sys
 from PyQt5 import QtWidgets
-from utils.dialogs import SystemAuthDialog
-from ui.mainUI import VaultXUI
+from ui.auth_dialog import SystemAuthDialog
+from ui.main_window import VaultMain
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    dlg = SystemAuthDialog()
-    if dlg.exec():
-        win = VaultXUI(dlg.verified_password)
-        win.show()
+    auth = SystemAuthDialog()
+    if auth.exec() == QtWidgets.QDialog.Accepted:
+        sys_pass = auth.verified_password
+        w = VaultMain(sys_pass, auto_import=True)
+        w.show()
         sys.exit(app.exec())
     else:
-        sys.exit(0)
+        print("Authentication cancelled.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
