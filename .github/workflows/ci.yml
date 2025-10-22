@@ -1,0 +1,60 @@
+name: 🧩 VaultX Build Check
+
+on:
+  push:
+    branches:
+    - main
+    - develop
+  pull_request:
+    branches:
+    - main
+    - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🧩 Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libdbus-1-dev \
+            libdbus-glib-1-dev \
+            pkg-config \
+            libglib2.0-dev
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: 🛠️ Build app with PyInstaller
+        run: |
+          pyinstaller main.py \
+            --noconfirm \
+            --onefile \
+            --name VaultX \
+            --noconsole \
+            --add-data=ui:ui \
+            --add-data=utils:utils \
+            --add-data=icons:icons
+
+      - name: ✅ Verify build output
+        run: |
+          test -f dist/VaultX || (echo "❌ Build failed: VaultX not found" && exit 1)
+          echo "✅ Build succeeded. VaultX binary created in dist/"
+
+      - name: 📤 Upload built artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VaultX-Build
+          path: dist/VaultX
